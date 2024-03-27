@@ -2,12 +2,12 @@ resource "aws_vpc" "main" {
   cidr_block       = var.vpc_cidr
   enable_dns_hostnames = var.enable_dns_hostnames
   tags = merge(
-    var.common_tags,
+    var.common_tags, 
     var.vpc_tags,
     {
-       Name = local.name
+        Name = local.name
     }
-  ) 
+  )
 }
 
 resource "aws_internet_gateway" "gw" {
@@ -17,7 +17,7 @@ resource "aws_internet_gateway" "gw" {
     var.common_tags,
     var.igw_tags,
     {
-      Name = local.name
+        Name = local.name
     }
   )
 }
@@ -27,15 +27,16 @@ resource "aws_subnet" "public" {
   vpc_id     = aws_vpc.main.id
   cidr_block = var.public_subnets_cidr[count.index]
   availability_zone = local.az_names[count.index]
-
+  map_public_ip_on_launch = true
   tags = merge(
     var.common_tags,
     var.public_subnets_tags,
     {
-      Name = "${local.name}-public-${local.az_names[count.index]}"
+        Name = "${local.name}-public-${local.az_names[count.index]}"
     }
   )
 }
+
 
 resource "aws_subnet" "private" {
   count = length(var.private_subnets_cidr)
@@ -46,7 +47,7 @@ resource "aws_subnet" "private" {
     var.common_tags,
     var.private_subnets_tags,
     {
-      Name = "${local.name}-private-${local.az_names[count.index]}"
+        Name = "${local.name}-private-${local.az_names[count.index]}"
     }
   )
 }
@@ -60,9 +61,18 @@ resource "aws_subnet" "database" {
     var.common_tags,
     var.database_subnets_tags,
     {
-      Name = "${local.name}-database-${local.az_names[count.index]}"
+        Name = "${local.name}-database-${local.az_names[count.index]}"
     }
   )
+}
+
+resource "aws_db_subnet_group" "default" {
+  name       = "${local.name}"
+  subnet_ids = aws_subnet.database[*].id
+
+  tags = {
+    Name = "${local.name}"
+  }
 }
 
 resource "aws_eip" "eip" {
@@ -77,7 +87,7 @@ resource "aws_nat_gateway" "main" {
     var.common_tags,
     var.nat_gateway_tags,
     {
-      Name = "${local.name}"
+        Name = "${local.name}"
     }
   )
 
@@ -93,7 +103,7 @@ resource "aws_route_table" "public" {
     var.common_tags,
     var.public_route_table_tags,
     {
-      Name = "${local.name}-public"
+        Name = "${local.name}-public"
     }
   )
 }
@@ -105,7 +115,7 @@ resource "aws_route_table" "private" {
     var.common_tags,
     var.private_route_table_tags,
     {
-      Name = "${local.name}-private"
+        Name = "${local.name}-private"
     }
   )
 }
@@ -117,12 +127,12 @@ resource "aws_route_table" "database" {
     var.common_tags,
     var.database_route_table_tags,
     {
-      Name = "${local.name}-database"
+        Name = "${local.name}-database"
     }
   )
 }
 
-resource "aws_route" "publi_route" {
+resource "aws_route" "public_route" {
   route_table_id            = aws_route_table.public.id
   destination_cidr_block    = "0.0.0.0/0"
   gateway_id = aws_internet_gateway.gw.id
@@ -157,9 +167,3 @@ resource "aws_route_table_association" "database" {
   subnet_id = element(aws_subnet.database[*].id, count.index)
   route_table_id = aws_route_table.database.id
 }
-
-
-
-
-
-
